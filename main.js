@@ -33,8 +33,22 @@ function parseNdjson(text) {
 }
 
 function respond(res, status, body) {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
-  res.end(JSON.stringify(body));
+  const text = JSON.stringify(body);
+  const send = (code, payload) => {
+    res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(payload);
+  };
+  if (!output) {
+    send(status, text);
+    return;
+  }
+  fs.writeFile(output, text, (err) => {
+    if (err) {
+      send(500, JSON.stringify({ error: 'Помилка запису у вихідний файл' }));
+    } else {
+      send(status, text);
+    }
+  });
 }
 
 function handler(req, res) {
