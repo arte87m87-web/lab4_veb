@@ -15,6 +15,14 @@ program
 program.parse();
 const { input, host, port, output } = program.opts();
 
+// Значення -> число або null (для порожніх, null і нечислових)
+function toNumber(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string' && value.trim() === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 // NDJSON: кожен непорожній рядок - окремий JSON-об'єкт
 function parseNdjson(text) {
   return text
@@ -37,16 +45,25 @@ function handler(req, res) {
     return;
   }
 
+  const showAge = url.searchParams.get('age') === 'true';
+  const onlySurvived = url.searchParams.get('survived') === 'true';
+
   fs.readFile(input, 'utf8', (err, text) => {
     if (err) {
       respond(res, 500, { error: 'Не вдалося прочитати файл даних' });
       return;
     }
     const rows = parseNdjson(text);
-    const result = rows.map((row) => ({
-      name: row.Name ?? null,
-      ticket: row.Ticket ?? null,
-    }));
+
+    const result = rows
+      .filter((row) => !onlySurvived || Number(row.Survived) === 1)
+      .map((row) => {
+        const item = { name: row.Name ?? null };
+        if (showAge) item.age = toNumber(row.Age);
+        item.ticket = row.Ticket === undefined || row.Ticket === null ? null : String(row.Ticket);
+        return item;
+      });
+
     respond(res, 200, result);
   });
 }
