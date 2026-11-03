@@ -67,7 +67,13 @@ function handler(req, res) {
       respond(res, 500, { error: 'Не вдалося прочитати файл даних' });
       return;
     }
-    const rows = parseNdjson(text);
+    let rows;
+    try {
+      rows = parseNdjson(text);
+    } catch (e) {
+      respond(res, 500, { error: 'Файл даних пошкоджений' });
+      return;
+    }
 
     const result = rows
       .filter((row) => !onlySurvived || Number(row.Survived) === 1)
